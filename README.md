@@ -1,4 +1,4 @@
-# Keerthi Samhitha - Portfolio
+# Keerthi Samhitha - Portfolio haha
 
 A modern, interactive React portfolio showcasing data analytics projects, machine learning work, and professional experience.
 
@@ -6,7 +6,7 @@ A modern, interactive React portfolio showcasing data analytics projects, machin
 
 ---
 
-## ✨ Features
+## Features
 
 - 🎯 **Interactive Ghost Animation** - Follows your cursor
 - ✍️ **Typewriter Effect** - Name types out on load
@@ -42,7 +42,7 @@ A modern, interactive React portfolio showcasing data analytics projects, machin
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 portfolio/

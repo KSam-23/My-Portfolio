@@ -8,7 +8,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext js,jsx"
+    "lint": "eslint src --ext js,jsx",
+    "docker:dev": "docker-compose --profile dev up",
+    "docker:prod": "docker-compose --profile prod up",
+    "docker:build": "docker build -t keerthi-portfolio:latest .",
+    "docker:stop": "docker-compose down"
   },
   "dependencies": {
     "react": "^18.2.0",

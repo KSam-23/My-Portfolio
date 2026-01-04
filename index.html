@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keerthi Samhitha - Portfolio</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #07070d;
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const Portfolio = () => {
+            const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+            const [ghostPos, setGhostPos] = useState({ x: 100, y: 100 });
+            const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
+            const [isLoaded, setIsLoaded] = useState(false);
+            const [typedText, setTypedText] = useState('');
+            const [currentSection, setCurrentSection] = useState('home');
+            const [isBlinking, setIsBlinking] = useState(false);
+            const canvasRef = useRef(null);
+            const fullName = "Keerthi Samhitha";
+
+            useEffect(() => {
+                if (!isLoaded) return;
+                let index = 0;
+                const timer = setInterval(() => {
+                    if (index <= fullName.length) {
+                        setTypedText(fullName.slice(0, index));
+                        index++;
+                    } else {
+                        clearInterval(timer);
+                    }
+                }, 100);
+                return () => clearInterval(timer);
+            }, [isLoaded]);
+
+            useEffect(() => {
+                const blinkInterval = setInterval(() => {
+                    setIsBlinking(true);
+                    setTimeout(() => setIsBlinking(false), 150);
+                }, 3000 + Math.random() * 2000);
+                return () => clearInterval(blinkInterval);
+            }, []);
+
+            useEffect(() => {
+                const handleMouseMove = (e) => {
+                    setMousePos({ x: e.clientX, y: e.clientY });
+                };
+                window.addEventListener('mousemove', handleMouseMove);
+                return () => window.removeEventListener('mousemove', handleMouseMove);
+            }, []);
+
+            useEffect(() => {
+                const lerp = (start, end, factor) => start + (end - start) * factor;
+                const interval = setInterval(() => {
+                    setGhostPos(prev => {
+                        const newX = lerp(prev.x, mousePos.x - 30, 0.06);
+                        const newY = lerp(prev.y, mousePos.y - 40, 0.06);
+
+                        const dx = mousePos.x - newX - 30;
+                        const dy = mousePos.y - newY - 30;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        const maxOffset = 3;
+
+                        if (dist > 0) {
+                            setEyeOffset({
+                                x: (dx / dist) * Math.min(maxOffset, dist / 50),
+                                y: (dy / dist) * Math.min(maxOffset, dist / 50)
+                            });
+                        }
+
+                        return { x: newX, y: newY };
+                    });
+                }, 16);
+                return () => clearInterval(interval);
+            }, [mousePos]);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                let animationId;
+                let stars = [];
+
+                const resize = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = document.documentElement.scrollHeight || window.innerHeight * 5;
+                    initStars();
+                };
+
+                const initStars = () => {
+                    stars = [];
+                    const numStars = Math.floor((canvas.width * canvas.height) / 8000);
+                    for (let i = 0; i < numStars; i++) {
+                        stars.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            radius: Math.random() * 1.5 + 0.3,
+                            alpha: Math.random() * 0.8 + 0.2,
+                            twinkleSpeed: Math.random() * 0.02 + 0.005,
+                            twinklePhase: Math.random() * Math.PI * 2
+                        });
+                    }
+                };
+
+                const animate = (time) => {
+                    ctx.fillStyle = '#07070d';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    const nebula = ctx.createRadialGradient(canvas.width * 0.3, canvas.height * 0.2, 0, canvas.width * 0.3, canvas.height * 0.2, canvas.width * 0.5);
+                    nebula.addColorStop(0, 'rgba(75, 0, 130, 0.12)');
+                    nebula.addColorStop(1, 'transparent');
+                    ctx.fillStyle = nebula;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    stars.forEach(star => {
+                        const twinkle = Math.sin(time * star.twinkleSpeed + star.twinklePhase) * 0.3 + 0.7;
+                        ctx.beginPath();
+                        ctx.arc(star.x, star.y, star.radius * twinkle, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha * twinkle})`;
+                        ctx.fill();
+                    });
+
+                    animationId = requestAnimationFrame(animate);
+                };
+
+                resize();
+                window.addEventListener('resize', resize);
+                animationId = requestAnimationFrame(animate);
+
+                setTimeout(() => setIsLoaded(true), 100);
+
+                return () => {
+                    window.removeEventListener('resize', resize);
+                    cancelAnimationFrame(animationId);
+                };
+            }, []);
+
+            const Ghost = () => {
+                const isHappy = currentSection === 'contact';
+                return (
+                    <div style={{
+                        position: 'fixed',
+                        left: ghostPos.x,
+                        top: ghostPos.y,
+                        zIndex: 1000,
+                        pointerEvents: 'none',
+                        filter: 'drop-shadow(0 0 25px rgba(200, 180, 255, 0.6))',
+                        animation: 'float 3s ease-in-out infinite'
+                    }}>
+                        <svg width="65" height="75" viewBox="0 0 65 75" fill="none">
+                            <defs>
+                                <linearGradient id="ghostGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="rgba(255,255,255,0.97)" />
+                                    <stop offset="100%" stopColor="rgba(200,180,255,0.85)" />
+                                </linearGradient>
+                            </defs>
+                            <path
+                                d="M32.5 5C17 5 5 17 5 32V58C5 60 7 61 9 59L16 52C18 50 21 50 23 52L28 57C30 59 35 59 37 57L42 52C44 50 47 50 49 52L56 59C58 61 60 60 60 58V32C60 17 48 5 32.5 5Z"
+                                fill="url(#ghostGrad)"
+                                stroke="rgba(147,112,219,0.4)"
+                                strokeWidth="1.5"
+                            />
+                            <ellipse cx="23" cy="30" rx="7" ry={isBlinking ? 1 : 8} fill="#1a1a2e" style={{ transition: 'ry 0.1s' }} />
+                            <ellipse cx="42" cy="30" rx="7" ry={isBlinking ? 1 : 8} fill="#1a1a2e" style={{ transition: 'ry 0.1s' }} />
+                            {!isBlinking && <ellipse cx={23 + eyeOffset.x} cy={30 + eyeOffset.y} rx="3" ry="3.5" fill="white" />}
+                            {!isBlinking && <ellipse cx={42 + eyeOffset.x} cy={30 + eyeOffset.y} rx="3" ry="3.5" fill="white" />}
+                            {isHappy ? (
+                                <path d="M26 44 Q32.5 52 39 44" stroke="#1a1a2e" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                            ) : (
+                                <ellipse cx="32.5" cy="45" rx="5" ry="4" fill="rgba(255,150,180,0.5)" />
+                            )}
+                            <ellipse cx="14" cy="38" rx="4" ry="2.5" fill="rgba(255,150,200,0.3)" />
+                            <ellipse cx="51" cy="38" rx="4" ry="2.5" fill="rgba(255,150,200,0.3)" />
+                        </svg>
+                    </div>
+                );
+            };
+
+            const AnimatedCounter = ({ end, suffix = '', duration = 2000, delay = 0 }) => {
+                const [count, setCount] = useState(0);
+                const [started, setStarted] = useState(false);
+
+                useEffect(() => {
+                    const startTimer = setTimeout(() => setStarted(true), delay);
+                    return () => clearTimeout(startTimer);
+                }, [delay]);
+
+                useEffect(() => {
+                    if (!started) return;
+                    let startTime;
+                    const animate = (timestamp) => {
+                        if (!startTime) startTime = timestamp;
+                        const progress = Math.min((timestamp - startTime) / duration, 1);
+                        setCount(Math.floor(progress * end));
+                        if (progress < 1) requestAnimationFrame(animate);
+                    };
+                    requestAnimationFrame(animate);
+                }, [started, end, duration]);
+
+                return <span>{count}{suffix}</span>;
+            };
+
+            // ==========================================
+            // DASHBOARD DESIGN - FIXED LAYOUT
+            // ==========================================
+            const DashboardDesign = ({ filename, accentColor, kpis, pipelineNodes, pipelineDesc, alertIcon, alertTitle, alertDesc, techStack }) => {
+                const [hoveredKpi, setHoveredKpi] = useState(null);
+                const [pipelineStep, setPipelineStep] = useState(0);
+
+                useEffect(() => {
+                    const interval = setInterval(() => {
+                        setPipelineStep(prev => (prev + 1) % pipelineNodes.length);
+                    }, 800);
+                    return () => clearInterval(interval);
+                }, [pipelineNodes.length]);
+
+                return (
+                    <div style={{
+                        background: 'linear-gradient(180deg, rgba(15, 15, 25, 0.95) 0%, rgba(10, 10, 18, 0.98) 100%)',
+                        border: '1px solid rgba(147, 112, 219, 0.25)',
+                        borderRadius: '24px',
+                        overflow: 'hidden',
+                        marginBottom: '3rem'
+                    }}>
+                        {/* HEADER WITH WINDOW CHROME - DIRECTLY AFTER TITLE */}
+                        <div style={{
+                            background: 'linear-gradient(90deg, rgba(147, 112, 219, 0.2) 0%, rgba(100, 80, 180, 0.1) 100%)',
+                            padding: '0.8rem 2rem',
+                            borderBottom: '1px solid rgba(147, 112, 219, 0.2)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '1rem'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
+                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#eab308' }} />
+                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e' }} />
+                                </div>
+                                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', fontFamily: "'Space Mono', monospace" }}>
+                                    {filename}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* CONTENT */}
+                        <div style={{ padding: '1.5rem 2rem' }}>
+                            {/* KPI CARDS - SIMPLE HOVER, NO ANIMATION */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                                gap: '0.8rem',
+                                marginBottom: '2rem'
+                            }}>
+                                {kpis.map((kpi, i) => (
+                                    <div
+                                        key={i}
+                                        onMouseEnter={() => setHoveredKpi(i)}
+                                        onMouseLeave={() => setHoveredKpi(null)}
+                                        style={{
+                                            background: hoveredKpi === i ? 'rgba(147, 112, 219, 0.25)' : 'rgba(0,0,0,0.3)',
+                                            borderRadius: '10px',
+                                            padding: '0.8rem',
+                                            borderLeft: `3px solid ${kpi.color}`,
+                                            cursor: 'default',
+                                            boxShadow: hoveredKpi === i
+                                                ? `inset 1px 1px 3px rgba(0,0,0,0.3), 0 0 15px ${kpi.color}40`
+                                                : 'inset 2px 2px 4px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)',
+                                            position: 'relative',
+                                            overflow: 'hidden'
+                                        }}
+                                    >
+                                        <div style={{ fontSize: '0.75rem', marginBottom: '0.2rem' }}>{kpi.icon}</div>
+                                        <div style={{
+                                            fontSize: '1.2rem',
+                                            fontWeight: '700',
+                                            color: hoveredKpi === i ? kpi.color : '#fff',
+                                            fontFamily: "'Syne', sans-serif"
+                                        }}>
+                                            {kpi.value}
+                                        </div>
+                                        <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                            {kpi.label}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* PIPELINE */}
+                            <div style={{
+                                background: 'rgba(0,0,0,0.25)',
+                                borderRadius: '16px',
+                                padding: '1.5rem',
+                                marginBottom: '1.5rem',
+                                border: '1px solid rgba(147, 112, 219, 0.1)'
+                            }}>
+                                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ width: '8px', height: '8px', background: accentColor, borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
+                                    Live Data Pipeline
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', padding: '1rem 0' }}>
+                                    <div style={{ position: 'absolute', top: '50%', left: '8%', right: '8%', height: '2px', background: 'rgba(147, 112, 219, 0.2)', transform: 'translateY(-50%)', zIndex: 0 }} />
+
+                                    {pipelineNodes.map((node, i) => {
+                                        const [isHovered, setIsHovered] = useState(false);
+
+                                        return (
+                                            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1 }}>
+                                                <div
+                                                    style={{
+                                                        width: '50px',
+                                                        height: '50px',
+                                                        borderRadius: '12px',
+                                                        background: pipelineStep === i ? 'linear-gradient(135deg, #9370db, #c8b4ff)' : 'rgba(20, 18, 35, 0.9)',
+                                                        border: pipelineStep === i ? '2px solid #c8b4ff' : '2px solid rgba(147, 112, 219, 0.3)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '1.3rem',
+                                                        boxShadow: isHovered || pipelineStep === i
+                                                            ? `inset 1px 1px 3px rgba(0,0,0,0.3), 0 0 18px ${accentColor}`
+                                                            : 'inset 2px 2px 5px rgba(0,0,0,0.6), inset -1px -1px 2px rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.3)',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onMouseEnter={() => setIsHovered(true)}
+                                                    onMouseLeave={() => setIsHovered(false)}
+                                                >
+                                                    {node.icon}
+                                                </div>
+                                                <span style={{ color: pipelineStep === i ? '#fff' : 'rgba(255,255,255,0.6)', fontSize: '0.7rem', fontWeight: '600', marginTop: '0.5rem', textAlign: 'center' }}>{node.label}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div style={{ marginTop: '1rem', padding: '0.8rem 1rem', background: 'rgba(147, 112, 219, 0.1)', borderRadius: '8px', borderLeft: '3px solid #9370db' }}>
+                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', lineHeight: 1.6, margin: 0 }}>
+                                        {pipelineDesc}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* ALERT */}
+                            <div style={{ background: `linear-gradient(90deg, ${alertIcon === '🛡️' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)'} 0%, rgba(0,0,0,0) 100%)`, border: `1px solid ${alertIcon === '🛡️' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`, borderRadius: '12px', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div style={{ width: '45px', height: '45px', background: alertIcon === '🛡️' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', animation: 'pulse 2s infinite' }}>{alertIcon}</div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ color: '#fff', fontWeight: '600', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        {alertTitle}
+                                        <span style={{ background: alertIcon === '🛡️' ? '#ef4444' : '#22c55e', color: '#fff', fontSize: '0.6rem', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: '700' }}>{alertIcon === '🛡️' ? 'CRITICAL' : 'ACHIEVED'}</span>
+                                    </div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', marginTop: '0.2rem' }}>{alertDesc}</div>
+                                </div>
+                            </div>
+
+                            {/* TECH STACK */}
+                            <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '12px', padding: '1.2rem 1.5rem' }}>
+                                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '1rem' }}>Tech Stack</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+                                    {techStack.map((group, i) => (
+                                        <div key={i}>
+                                            <div style={{ fontSize: '0.65rem', color: '#c8b4ff', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem' }}>{group.category}</div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                                {group.items.map((tech, j) => (
+                                                    <span key={j} style={{ background: 'rgba(147, 112, 219, 0.15)', color: 'rgba(255,255,255,0.8)', padding: '0.25rem 0.6rem', borderRadius: '5px', fontSize: '0.7rem', fontFamily: "'Space Mono', monospace", border: '1px solid rgba(147, 112, 219, 0.2)' }}>{tech}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // ==========================================
+            // CAPGEMINI - TITLE THEN DASHBOARD
+            // ==========================================
+            const DashboardExperience = () => {
+                return (
+                    <>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <h3 style={{ fontSize: '1.5rem', fontFamily: "'Syne', sans-serif", fontWeight: '700', color: '#fff', marginBottom: '0.3rem' }}>Data Analyst</h3>
+                            <p style={{ color: '#c8b4ff', fontSize: '0.95rem', fontFamily: "'Space Mono', monospace" }}>Capgemini • Bengaluru, India</p>
+                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', fontFamily: "'Space Mono', monospace" }}>Oct 2021 - Aug 2024 • 3 Years</p>
+                        </div>
+
+                        <DashboardDesign
+                            filename="capgemini_analytics.pbix"
+                            accentColor="#8b5cf6"
+                            kpis={[
+                                { value: '50M+', label: 'Records', icon: '🗄️', color: '#8b5cf6' },
+                                { value: '10+', label: 'Data Sources', icon: '🔗', color: '#06b6d4' },
+                                { value: '50+', label: 'Stakeholders', icon: '👥', color: '#22c55e' },
+                                { value: '20+', label: 'Clients', icon: '🏢', color: '#f59e0b' },
+                                { value: '5x', label: 'Faster Decisions', icon: '⚡', color: '#ec4899' },
+                                { value: '30%', label: 'Query Optimization', icon: '🚀', color: '#14b8a6' },
+                            ]}
+                            pipelineNodes={[
+                                { label: 'Raw Data', icon: '📥' },
+                                { label: 'Airflow', icon: '⚡' },
+                                { label: 'Python', icon: '🔬' },
+                                { label: 'PostgreSQL', icon: '🔐' },
+                                { label: 'Power BI', icon: '📈' },
+                                { label: 'Insights', icon: '🎆' },
+                            ]}
+                            pipelineDesc="Built automated ETL pipelines processing data from 10+ sources, cutting manual data processing time by 25% and delivering real-time business reporting."
+                            alertIcon="🛡️"
+                            alertTitle="Security Compliance"
+                            alertDesc="Identified 300+ Security Vulnerabilities. Compliance scores improved by 47%."
+                            techStack={[
+                                { category: 'Languages', items: ['Python', 'SQL', 'DAX', 'M Language'] },
+                                { category: 'Libraries', items: ['Pandas', 'NumPy'] },
+                                { category: 'Databases', items: ['PostgreSQL', 'MySQL'] },
+                                { category: 'ETL', items: ['Apache Airflow', 'Power Query'] },
+                                { category: 'BI Tools', items: ['Power BI', 'Excel'] },
+                                { category: 'Other', items: ['Git', 'Agile/Scrum'] },
+                            ]}
+                        />
+                    </>
+                );
+            };
+
+            // ==========================================
+            // INGRAM - TITLE THEN DASHBOARD
+            // ==========================================
+            const ImpactMetricsExperience = () => {
+                return (
+                    <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.8rem', fontFamily: "'Syne', sans-serif", fontWeight: '700', color: '#fff', marginBottom: '0.5rem' }}>Associate</h3>
+                                <p style={{ fontSize: '1.1rem', color: '#c8b4ff', fontFamily: "'Space Mono', monospace" }}>Ingram Micro • Buffalo, NY</p>
+                            </div>
+                            <span style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff', padding: '0.5rem 1.2rem', borderRadius: '20px', fontSize: '0.85rem', fontFamily: "'Space Mono', monospace", fontWeight: '600' }}>CURRENT</span>
+                        </div>
+                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', marginBottom: '1.5rem', fontFamily: "'Space Mono', monospace" }}>June 2025 - December 2025</p>
+
+                        <DashboardDesign
+                            filename="ingram_ops_dashboard.pbix"
+                            accentColor="#22c55e"
+                            kpis={[
+                                { value: '40+', label: 'Issues Resolved', icon: '✅', color: '#22c55e' },
+                                { value: '25%', label: 'Fewer Incidents', icon: '📉', color: '#3b82f6' },
+                                { value: '11%', label: 'Forecast Accuracy', icon: '🎯', color: '#eab308' },
+                                { value: '20%', label: 'Reporting Efficiency', icon: '⚡', color: '#8b5cf6' }
+                            ]}
+                            pipelineNodes={[
+                                { label: 'CRM / Excel', icon: '📥' },
+                                { label: 'SQL Extract', icon: '🔗' },
+                                { label: 'Clean & Pivot', icon: '⚙️' },
+                                { label: 'Root Cause', icon: '🎯' },
+                                { label: 'Power BI', icon: '📊' },
+                                { label: 'Decision', icon: '✅' }
+                            ]}
+                            pipelineDesc="Managed end-to-end data lifecycle: extracting from CRM/SQL, cleaning 15+ weekly datasets, identifying root causes, and delivering actionable insights to stakeholders."
+                            alertIcon="📈"
+                            alertTitle="Operational Excellence"
+                            alertDesc="Reduced ad-hoc reporting requests by 20% through standardized weekly dashboards."
+                            techStack={[
+                                { category: 'Tools', items: ['Power BI', 'Excel', 'CRM Analytics'] },
+                                { category: 'Query', items: ['SQL', 'Pivot Tables'] },
+                                { category: 'Skills', items: ['Root Cause Analysis', 'Forecasting'] }
+                            ]}
+                        />
+                    </>
+                );
+            };
+
+            const SectionTitle = ({ children }) => (
+                <h2 style={{
+                    fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                    fontFamily: "'Syne', sans-serif",
+                    fontWeight: '700',
+                    marginBottom: '3rem',
+                    background: 'linear-gradient(135deg, #fff 0%, #c8b4ff 50%, #9370db 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    position: 'relative',
+                    display: 'inline-block'
+                }}>
+                    {children}
+                    <span style={{
+                        position: 'absolute',
+                        bottom: '-8px',
+                        left: 0,
+                        width: '80px',
+                        height: '4px',
+                        background: 'linear-gradient(90deg, #9370db, transparent)',
+                        borderRadius: '2px'
+                    }} />
+                </h2>
+            );
+
+            return (
+                <div style={{
+                    minHeight: '100vh',
+                    background: '#07070d',
+                    color: '#fff',
+                    fontFamily: "'Inter', sans-serif",
+                    position: 'relative',
+                    overflowX: 'hidden'
+                }}>
+                    <style>{`
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+            @keyframes float { 0%, 100% { transform: translateY(0px) rotate(-2deg); } 50% { transform: translateY(-20px) rotate(2deg); } }
+            @keyframes pulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } }
+            @keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+            @keyframes cursorBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+            @keyframes growWidth { from { width: 0; } to { width: 20%; } }
+            @keyframes shine { from { left: -100%; } to { left: 200%; } }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            html { scroll-behavior: smooth; }
+            ::-webkit-scrollbar { width: 6px; }
+            ::-webkit-scrollbar-track { background: #07070d; }
+            ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #9370db, #c8b4ff); border-radius: 3px; }
+            .nav-link { position: relative; background: none; border: none; color: rgba(255,255,255,0.5); font-size: 0.85rem; font-family: 'Space Mono', monospace; cursor: pointer; padding: 0.5rem 1rem; transition: all 0.3s ease; }
+            .nav-link:hover, .nav-link.active { color: #c8b4ff; }
+            .nav-link::after { content: ''; position: absolute; bottom: 0; left: 50%; width: 0; height: 2px; background: linear-gradient(90deg, transparent, #c8b4ff, transparent); transition: all 0.3s ease; transform: translateX(-50%); }
+            .nav-link:hover::after, .nav-link.active::after { width: 80%; }
+            .project-card:hover { transform: translateY(-10px); background: rgba(147,112,219,0.15) !important; border-color: #9370db !important; }
+          `}</style>
+
+                    <canvas ref={canvasRef} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }} />
+                    <Ghost />
+
+                    <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '1.2rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(180deg, rgba(7,7,13,0.98) 0%, transparent 100%)', backdropFilter: 'blur(20px)' }}>
+                        <div style={{ fontSize: '1.8rem', fontFamily: "'Syne', sans-serif", fontWeight: '700', background: 'linear-gradient(135deg, #fff 0%, #c8b4ff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>KS</div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {['home', 'experience', 'projects', 'skills', 'contact'].map(section => (
+                                <button key={section} className={`nav-link ${currentSection === section ? 'active' : ''}`} onClick={() => { setCurrentSection(section); document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' }); }}>{section.charAt(0).toUpperCase() + section.slice(1)}</button>
+                            ))}
+                        </div>
+                    </nav>
+
+                    <section id="home" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1, padding: '2rem' }}>
+                        <div style={{ textAlign: 'center', maxWidth: '900px', opacity: isLoaded ? 1 : 0, transform: isLoaded ? 'translateY(0)' : 'translateY(30px)', transition: 'all 1s ease' }}>
+                            <div style={{ width: '150px', height: '150px', margin: '0 auto 2rem', borderRadius: '50%', background: 'linear-gradient(135deg, #9370db, #c8b4ff)', padding: '3px', boxShadow: '0 0 60px rgba(147, 112, 219, 0.4)', animation: 'pulse 4s ease-in-out infinite' }}>
+                                <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#0a0a15', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    <div style={{ fontSize: '4rem' }}>👩‍💻</div>
+                                </div>
+                            </div>
+                            <p style={{ color: '#c8b4ff', fontSize: '0.9rem', fontFamily: "'Space Mono', monospace", marginBottom: '0.8rem', letterSpacing: '4px', textTransform: 'uppercase' }}>Hello, I'm</p>
+                            <h1 style={{ fontSize: 'clamp(2.5rem, 8vw, 5rem)', fontFamily: "'Syne', sans-serif", fontWeight: '700', marginBottom: '1rem', background: 'linear-gradient(135deg, #ffffff, #c8b4ff, #9370db)', backgroundSize: '200% 200%', animation: 'gradientMove 5s ease infinite', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.1 }}>
+                                {typedText}<span style={{ display: 'inline-block', width: '3px', height: '0.8em', background: '#c8b4ff', marginLeft: '4px', animation: 'cursorBlink 1s infinite', verticalAlign: 'middle' }} />
+                            </h1>
+                            <p style={{ fontSize: 'clamp(1.1rem, 3vw, 1.5rem)', color: 'rgba(255,255,255,0.8)', marginBottom: '1.5rem' }}>Data Analyst & Data Scientist</p>
+                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                <a href="https://github.com/KSam-23" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fff', textDecoration: 'none', padding: '0.7rem 1.3rem', border: '1px solid rgba(147, 112, 219, 0.4)', borderRadius: '25px', fontSize: '0.85rem', fontFamily: "'Space Mono', monospace" }}>GitHub</a>
+                                <a href="https://linkedin.com" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fff', textDecoration: 'none', padding: '0.7rem 1.3rem', border: '1px solid rgba(147, 112, 219, 0.4)', borderRadius: '25px', fontSize: '0.85rem', fontFamily: "'Space Mono', monospace" }}>LinkedIn</a>
+                                <a href="mailto:k.samhitha23@gmail.com" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#07070d', textDecoration: 'none', padding: '0.7rem 1.3rem', background: 'linear-gradient(135deg, #c8b4ff, #9370db)', borderRadius: '25px', fontSize: '0.85rem', fontFamily: "'Space Mono', monospace", fontWeight: '600' }}>Get in Touch</a>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="experience" style={{ position: 'relative', zIndex: 1, padding: '6rem 2rem', maxWidth: '1000px', margin: '0 auto' }}>
+                        <SectionTitle>Experience</SectionTitle>
+                        <ImpactMetricsExperience />
+                        <DashboardExperience />
+
+                        <div style={{ background: 'rgba(147, 112, 219, 0.08)', border: '1px solid rgba(147, 112, 219, 0.2)', borderRadius: '16px', padding: '1.5rem 2rem' }}>
+                            <h4 style={{ color: '#c8b4ff', fontFamily: "'Space Mono', monospace", fontSize: '0.8rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '3px' }}>Education</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                                <div><p style={{ color: '#fff', fontSize: '1rem', fontWeight: '500', marginBottom: '0.2rem' }}>M.S. in Data Science</p><p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>University at Buffalo - SUNY • 2024 - 2025</p></div>
+                                <div><p style={{ color: '#fff', fontSize: '1rem', fontWeight: '500', marginBottom: '0.2rem' }}>B.Tech, Electronics & Communication</p><p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>Gurunank Institute of Technology • 2017 - 2021</p></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="projects" style={{ position: 'relative', zIndex: 1, padding: '6rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
+                        <SectionTitle>Projects</SectionTitle>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+                            {[
+                                { title: "RetinaScan-AI", subtitle: "Diabetic Retinopathy Detection", desc: "CNN model trained on 35K+ images to classify severity levels with 0.70 kappa score.", tags: ["Python", "TensorFlow", "OpenCV", "Flask"], icon: "🔬" },
+                                { title: "Crime Analysis Dashboard", subtitle: "Power BI Analytics Platform", desc: "Analyzed 2,500+ incidents with Year-over-Year trends and heatmap visualizations.", tags: ["Power BI", "DAX", "SQL", "Power Query"], icon: "📊" },
+                                { title: "Healthcare Analytics", subtitle: "HCAHPS Survey Analysis", desc: "Analyzed 43,000+ responses to identify patient satisfaction trends & anomalies.", tags: ["Power BI", "Statistics", "Data Mining"], icon: "🏥" }
+                            ].map((p, i) => (
+                                <div key={i} className="project-card" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '2rem', transition: 'all 0.3s ease', cursor: 'pointer' }}>
+                                    <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{p.icon}</div>
+                                    <h3 style={{ fontSize: '1.4rem', fontFamily: "'Syne', sans-serif", marginBottom: '0.5rem' }}>{p.title}</h3>
+                                    <div style={{ color: '#c8b4ff', fontSize: '0.9rem', marginBottom: '1rem', fontFamily: "'Space Mono', monospace" }}>{p.subtitle}</div>
+                                    <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: '1.6', marginBottom: '1.5rem', fontSize: '0.95rem' }}>{p.desc}</p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        {p.tags.map((t, j) => (<span key={j} style={{ background: 'rgba(147,112,219,0.2)', padding: '0.3rem 0.8rem', borderRadius: '15px', fontSize: '0.75rem', fontFamily: "'Space Mono', monospace", color: '#d8b4fe' }}>{t}</span>))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section id="skills" style={{ position: 'relative', zIndex: 1, padding: '6rem 2rem', maxWidth: '1000px', margin: '0 auto' }}>
+                        <SectionTitle>Skills</SectionTitle>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem' }}>
+                            {[{ name: "Python", level: 90 }, { name: "SQL", level: 95 }, { name: "Power BI", level: 95 }, { name: "Excel", level: 90 }, { name: "Machine Learning", level: 85 }, { name: "DAX", level: 85 }].map((s, i) => (
+                                <div key={i}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontFamily: "'Space Mono', monospace" }}>{s.name}</span>
+                                        <span style={{ color: '#c8b4ff' }}>{s.level}%</span>
+                                    </div>
+                                    <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                                        <div style={{ width: `${s.level}%`, height: '100%', background: 'linear-gradient(90deg, #9370db, #c8b4ff)', boxShadow: '0 0 10px rgba(147,112,219,0.5)' }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section id="contact" style={{ position: 'relative', zIndex: 1, padding: '6rem 2rem', textAlign: 'center' }}>
+                        <SectionTitle>Let's Connect</SectionTitle>
+                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1.1rem', maxWidth: '500px', margin: '0 auto 3rem', lineHeight: 1.8 }}>Open to discussing data projects, collaboration opportunities, or chatting about the latest in data science.</p>
+                        <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <a href="mailto:k.samhitha23@gmail.com" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '1rem', fontFamily: "'Space Mono', monospace" }}>k.samhitha23@gmail.com</a>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: 'rgba(255,255,255,0.7)', fontSize: '1rem', fontFamily: "'Space Mono', monospace" }}>Buffalo, NY</span>
+                        </div>
+                    </section>
+
+                    <footer style={{ position: 'relative', zIndex: 1, padding: '3rem 2rem', borderTop: '1px solid rgba(147, 112, 219, 0.15)', textAlign: 'center' }}>
+                        <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.95rem', fontStyle: 'italic', maxWidth: '600px', margin: '0 auto 2rem', lineHeight: 1.8 }}>"The world isn't perfect. But it's there for us, doing the best it can. That's what makes it so damn beautiful."<span style={{ display: 'block', color: '#c8b4ff', marginTop: '0.5rem', fontStyle: 'normal', fontSize: '0.8rem', fontFamily: "'Space Mono', monospace" }}>— Roy Mustang, Fullmetal Alchemist</span></p>
+                        <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.8rem', fontFamily: "'Space Mono', monospace" }}>© Keerthi Samhitha 2025 • Crafted with ✨</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<Portfolio />, document.getElementById('root'));
+    </script>
+</body>
+
+</html>

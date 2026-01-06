@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import StarfieldBackground from './components/StarfieldBackground';
 
 const Portfolio = () => {
-    // STATE (Copied exactly from original)
+    // STATE
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [ghostPos, setGhostPos] = useState({ x: 100, y: 100 });
     const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });
@@ -9,7 +10,6 @@ const Portfolio = () => {
     const [typedText, setTypedText] = useState('');
     const [currentSection, setCurrentSection] = useState('home');
     const [isBlinking, setIsBlinking] = useState(false);
-    const canvasRef = useRef(null);
     const fullName = "Keerthi Samhitha";
 
     // Typewriter effect (Copied exactly)
@@ -71,66 +71,9 @@ const Portfolio = () => {
         return () => clearInterval(interval);
     }, [mousePos]);
 
-    // Constellation background (Copied exactly)
+    // Set loaded state for initial animations
     useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        let animationId;
-        let stars = [];
-
-        const resize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = document.documentElement.scrollHeight || window.innerHeight * 5;
-            initStars();
-        };
-
-        const initStars = () => {
-            stars = [];
-            const numStars = Math.floor((canvas.width * canvas.height) / 8000);
-            for (let i = 0; i < numStars; i++) {
-                stars.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    radius: Math.random() * 1.5 + 0.3,
-                    alpha: Math.random() * 0.8 + 0.2,
-                    twinkleSpeed: Math.random() * 0.02 + 0.005,
-                    twinklePhase: Math.random() * Math.PI * 2
-                });
-            }
-        };
-
-        const animate = (time) => {
-            ctx.fillStyle = '#07070d';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            const nebula = ctx.createRadialGradient(canvas.width * 0.3, canvas.height * 0.2, 0, canvas.width * 0.3, canvas.height * 0.2, canvas.width * 0.5);
-            nebula.addColorStop(0, 'rgba(75, 0, 130, 0.12)');
-            nebula.addColorStop(1, 'transparent');
-            ctx.fillStyle = nebula;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            stars.forEach(star => {
-                const twinkle = Math.sin(time * star.twinkleSpeed + star.twinklePhase) * 0.3 + 0.7;
-                ctx.beginPath();
-                ctx.arc(star.x, star.y, star.radius * twinkle, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha * twinkle})`;
-                ctx.fill();
-            });
-
-            animationId = requestAnimationFrame(animate);
-        };
-
-        resize();
-        window.addEventListener('resize', resize);
-        animationId = requestAnimationFrame(animate);
-
         setTimeout(() => setIsLoaded(true), 100);
-
-        return () => {
-            window.removeEventListener('resize', resize);
-            cancelAnimationFrame(animationId);
-        };
     }, []);
 
     const Ghost = () => {
@@ -522,7 +465,7 @@ const Portfolio = () => {
     return (
         <div style={{
             minHeight: '100vh',
-            background: '#07070d',
+            background: '#0a0a0a',
             color: '#fff',
             fontFamily: "'Inter', sans-serif",
             position: 'relative',
@@ -540,7 +483,7 @@ const Portfolio = () => {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #07070d; }
+    ::-webkit-scrollbar-track { background: #0a0a0a; }
     ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #9370db, #c8b4ff); border-radius: 3px; }
     .nav-link { position: relative; background: none; border: none; color: rgba(255,255,255,0.5); font-size: 0.85rem; font-family: 'Space Mono', monospace; cursor: pointer; padding: 0.5rem 1rem; transition: all 0.3s ease; }
     .nav-link:hover, .nav-link.active { color: #c8b4ff; }
@@ -551,11 +494,11 @@ const Portfolio = () => {
     .project-card:hover { transform: translateY(-10px); background: rgba(147,112,219,0.15) !important; border-color: #9370db !important; }
   `}</style>
 
-            <canvas ref={canvasRef} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }} />
+            <StarfieldBackground />
             <Ghost />
 
             {/* Navigation (Copied exactly apart from contact link) */}
-            <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '1.2rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(180deg, rgba(7,7,13,0.98) 0%, transparent 100%)', backdropFilter: 'blur(20px)' }}>
+            <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '1.2rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(180deg, rgba(10,10,10,0.98) 0%, transparent 100%)', backdropFilter: 'blur(20px)' }}>
                 <div style={{ fontSize: '1.8rem', fontFamily: "'Syne', sans-serif", fontWeight: '700', background: 'linear-gradient(135deg, #fff 0%, #c8b4ff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>KS</div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                     {['home', 'experience', 'projects', 'skills', 'contact'].map(section => (
